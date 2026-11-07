@@ -1,19 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { makeScenario } from "./scenario.ts";
-import { runSteps } from "./step.ts";
-import type { Command, Roe, ScenarioId, Trace, World } from "./types.ts";
+import type { Command, Roe, Role, ScenarioId, Trace, World } from "./types.ts";
 
-function assertWorld(value: unknown): World {
-  if (!value || typeof value !== "object") throw new Error("World payload missing.");
-  const world = value as World;
-  if (typeof world.tick !== "number" || typeof world.rng !== "number") throw new Error("World tick is invalid.");
-  if (!Array.isArray(world.assets) || !Array.isArray(world.contacts) || !Array.isArray(world.tracks)) {
-    throw new Error("World lists are invalid.");
-  }
-  if (world.assets.length > 48 || world.contacts.length > 48 || world.tracks.length > 64) {
-    throw new Error("World is larger than this sim allows.");
-  }
-  return world;
+function asRole(value: unknown): Role {
+  if (value === "observer" || value === "analyst" || value === "commander") return value;
+  return "commander";
 }
 
 function asCommands(value: unknown): Command[] {
@@ -24,9 +14,10 @@ function asCommands(value: unknown): Command[] {
     const command = item as Command;
     if (command.type === "approve" || command.type === "deny") {
       if (typeof command.engagementId === "string") out.push(command);
-    } else if (command.type === "launch" || command.type === "adopt") {
-      if (command.type === "launch" && typeof command.assetId === "string") out.push(command);
-      if (command.type === "adopt" && typeof command.coaId === "string") out.push(command);
+    } else if (command.type === "launch" && typeof command.assetId === "string") {
+      out.push(command);
+    } else if (command.type === "adopt" && typeof command.coaId === "string") {
+      out.push(command);
     } else if (command.type === "roe" && (command.roe === "HOLD" || command.roe === "TIGHT")) {
       out.push({ type: "roe", roe: command.roe satisfies Roe });
     }
@@ -35,38 +26,59 @@ function asCommands(value: unknown): Command[] {
 }
 
 export const bootstrapSim = createServerFn({ method: "POST" })
-  .validator((data: { scenario?: ScenarioId; seed?: number }) => {
+  .validator((data: { scenario?: ScenarioId; seed?: number; role?: Role }) => {
     const scenario: ScenarioId =
       data?.scenario === "harbor" || data?.scenario === "gallery" ? data.scenario : "hearth";
     const seed = Number.isFinite(data?.seed) ? Math.floor(data!.seed as number) : 1107;
-    return { scenario, seed };
+    return { scenario, seed, role: asRole(data?.role) };
   })
   .handler(async ({ data }): Promise<{ world: World; trace: Trace }> => {
     const started = performance.now();
-    const world = makeScenario(data.scenario, data.seed);
-    const bytesOut = JSON.stringify(world).length;
+    const { picture, resetExercise } = await import("./service.server.ts");
+    const world =
+      data.role === "commander" && data.seed !== 1107
+        ? await resetExercise(data.scenario, data.seed, data.role)
+        : await picture(data.scenario);
     return {
       world,
-      trace: { fn: "odin.bootstrap", ms: performance.now() - started, bytesIn: 0, bytesOut },
+      trace: { fn: "odin.picture", ms: performance.now() - started, bytesIn: 0, bytesOut: JSON.stringify(world).length },
+    };
+  });
+
+export const resetSim = createServerFn({ method: "POST" })
+  .validator((data: { scenario?: ScenarioId; seed?: number; role?: Role }) => {
+    const scenario: ScenarioId =
+      data?.scenario === "harbor" || data?.scenario === "gallery" ? data.scenario : "hearth";
+    const seed = Number.isFinite(data?.seed) ? Math.floor(data!.seed as number) : 1107;
+    return { scenario, seed, role: asRole(data?.role) };
+  })
+  .handler(async ({ data }): Promise<{ world: World; trace: Trace }> => {
+    const started = performance.now();
+    const { resetExercise } = await import("./service.server.ts");
+    const world = await resetExercise(data.scenario, data.seed, data.role);
+    return {
+      world,
+      trace: { fn: "odin.reset", ms: performance.now() - started, bytesIn: 0, bytesOut: JSON.stringify(world).length },
     };
   });
 
 export const stepSim = createServerFn({ method: "POST" })
-  .validator((data: { world?: unknown; steps?: number; commands?: unknown }) => {
-    const world = assertWorld(data?.world);
+  .validator((data: { exercise?: ScenarioId; steps?: number; commands?: unknown; role?: Role }) => {
+    const exercise: ScenarioId =
+      data?.exercise === "harbor" || data?.exercise === "gallery" ? data.exercise : "hearth";
     const steps = Math.max(1, Math.min(12, Math.floor(data?.steps ?? 1)));
-    return { world, steps, commands: asCommands(data?.commands) };
+    return { exercise, steps, commands: asCommands(data?.commands), role: asRole(data?.role) };
   })
   .handler(async ({ data }): Promise<{ world: World; trace: Trace }> => {
-    const bytesIn = JSON.stringify(data.world).length;
     const started = performance.now();
-    const world = runSteps(data.world, data.steps, data.commands);
+    const { stepExercise } = await import("./service.server.ts");
+    const world = await stepExercise(data.exercise, data.role, data.steps, data.commands);
     return {
       world,
       trace: {
         fn: "odin.step",
         ms: performance.now() - started,
-        bytesIn,
+        bytesIn: JSON.stringify(data.commands).length,
         bytesOut: JSON.stringify(world).length,
       },
     };

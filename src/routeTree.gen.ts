@@ -10,33 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiOdinSplatRouteImport } from './routes/api/odin/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOdinSplatRoute = ApiOdinSplatRouteImport.update({
+  id: '/api/odin/$',
+  path: '/api/odin/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/odin/$': typeof ApiOdinSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/odin/$': typeof ApiOdinSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/odin/$': typeof ApiOdinSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/api/odin/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/api/odin/$'
+  id: '__root__' | '/' | '/api/odin/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiOdinSplatRoute: typeof ApiOdinSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +58,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/odin/$': {
+      id: '/api/odin/$'
+      path: '/api/odin/$'
+      fullPath: '/api/odin/$'
+      preLoaderRoute: typeof ApiOdinSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiOdinSplatRoute: ApiOdinSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

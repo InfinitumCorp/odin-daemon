@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { MODULES, PROVENANCE } from "@/lib/odin/catalog";
 import { forecastFor } from "@/lib/odin/conjure";
 import { airframe } from "@/lib/odin/models/index";
-import { bootstrapSim, stepSim } from "@/lib/odin/rpc";
-import type { Command, ScenarioId, Trace, World } from "@/lib/odin/types";
+import { resetSim, stepSim } from "@/lib/odin/rpc";
+import type { Command, Role, ScenarioId, Trace, World } from "@/lib/odin/types";
 import { Button } from "@/components/ui/button";
 import { Plot } from "./plot";
 
@@ -22,20 +22,23 @@ function clock(tick: number): string {
 
 export function Console({ initial }: { initial: { world: World; trace: Trace } }) {
   const step = useServerFn(stepSim);
-  const boot = useServerFn(bootstrapSim);
+  const reset = useServerFn(resetSim);
   const [world, setWorld] = useState(initial.world);
   const [traces, setTraces] = useState<Trace[]>([initial.trace]);
   const [running, setRunning] = useState(true);
   const [pace, setPace] = useState(4);
   const [whiteCell, setWhiteCell] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [role, setRole] = useState<Role>("commander");
   const [tab, setTab] = useState<"log" | "coa" | "conjure" | "rpc" | "stack">("log");
   const [error, setError] = useState<string | null>(null);
+  const roleRef = useRef(role);
   const worldRef = useRef(world);
   const queue = useRef<Command[]>([]);
   const busy = useRef(false);
   const paceRef = useRef(pace);
   worldRef.current = world;
+  roleRef.current = role;
   paceRef.current = pace;
 
   const beat = async (steps?: number) => {
@@ -44,7 +47,12 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
     const commands = queue.current.splice(0, queue.current.length);
     try {
       const result = await step({
-        data: { world: worldRef.current, steps: steps ?? paceRef.current, commands },
+        data: {
+          exercise: worldRef.current.scenario,
+          steps: steps ?? paceRef.current,
+          commands,
+          role: roleRef.current,
+        },
       });
       worldRef.current = result.world;
       setWorld(result.world);
@@ -52,7 +60,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Step failed");
-      setRunning(false);
+      if (commands.length > 0) setRunning(false);
     } finally {
       busy.current = false;
     }
@@ -74,7 +82,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
   const load = async (scenario: ScenarioId) => {
     setRunning(false);
     try {
-      const result = await boot({ data: { scenario, seed: 1107 } });
+      const result = await reset({ data: { scenario, seed: 1107, role: roleRef.current } });
       worldRef.current = result.world;
       setWorld(result.world);
       setTraces([result.trace]);
@@ -100,7 +108,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           <h1 className="text-lg font-semibold leading-tight">DAEMON combat sim</h1>
         </div>
         <p className="max-w-xl text-sm text-muted">
-          {world.title}. Server steps the air picture. Nothing here flies a real aircraft.
+          {world.title}. The server holds the picture. A commander approves every engagement.
         </p>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {SCENARIOS.map((scenario) => (
@@ -110,6 +118,11 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
               onClick={() => void load(scenario.id)}
             >
               {scenario.label}
+            </Button>
+          ))}
+          {(["observer", "analyst", "commander"] as const).map((name) => (
+            <Button key={name} tone={role === name ? "accent" : "ghost"} onClick={() => setRole(name)}>
+              {name}
             </Button>
           ))}
           <Button tone="ghost" onClick={() => setRunning((v) => !v)}>
@@ -154,7 +167,11 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                 </button>
                 {asset.status === "docked" ? (
                   <div className="px-4 pb-2">
-                    <Button tone="ghost" onClick={() => send({ type: "launch", assetId: asset.id })}>
+                    <Button
+                      tone="ghost"
+                      disabled={role !== "commander"}
+                      onClick={() => send({ type: "launch", assetId: asset.id })}
+                    >
                       Launch
                     </Button>
                   </div>
@@ -169,7 +186,11 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
             <span className="font-mono text-xs text-accent">{clock(world.tick)}</span>
             <span className="font-mono text-xs text-muted">ROE {world.roe}</span>
             <span className="font-mono text-xs text-muted">hash {world.record.toString(16)}</span>
-            <Button tone={world.roe === "HOLD" ? "accent" : "ghost"} onClick={() => send({ type: "roe", roe: world.roe === "HOLD" ? "TIGHT" : "HOLD" })}>
+            <Button
+              tone={world.roe === "HOLD" ? "accent" : "ghost"}
+              disabled={role !== "commander"}
+              onClick={() => send({ type: "roe", roe: world.roe === "HOLD" ? "TIGHT" : "HOLD" })}
+            >
               {world.roe === "HOLD" ? "Release to TIGHT" : "Weapons HOLD"}
             </Button>
             <Button tone={whiteCell ? "accent" : "ghost"} onClick={() => setWhiteCell((v) => !v)}>
@@ -230,10 +251,18 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                     );
                   })()}
                   <div className="mt-3 flex gap-2">
-                    <Button tone="accent" onClick={() => send({ type: "approve", engagementId: engagement.id })}>
+                    <Button
+                      tone="accent"
+                      disabled={role !== "commander"}
+                      onClick={() => send({ type: "approve", engagementId: engagement.id })}
+                    >
                       Approve
                     </Button>
-                    <Button tone="ghost" onClick={() => send({ type: "deny", engagementId: engagement.id })}>
+                    <Button
+                      tone="ghost"
+                      disabled={role !== "commander"}
+                      onClick={() => send({ type: "deny", engagementId: engagement.id })}
+                    >
                       Deny
                     </Button>
                   </div>
@@ -300,7 +329,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                     <p className="text-sm font-medium">{coa.title}</p>
                     <p className="text-sm text-muted">{coa.summary}</p>
                   </div>
-                  <Button tone="ghost" onClick={() => send({ type: "adopt", coaId: coa.id })}>
+                  <Button tone="ghost" disabled={role !== "commander"} onClick={() => send({ type: "adopt", coaId: coa.id })}>
                     Adopt
                   </Button>
                 </li>

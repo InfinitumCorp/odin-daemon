@@ -18,6 +18,8 @@ export type TrackClass = "rotor" | "wing" | "swarm" | "unknown";
 
 export type Roe = "HOLD" | "TIGHT";
 
+export type Role = "observer" | "analyst" | "commander";
+
 export interface Vec2 {
   x: number;
   y: number;

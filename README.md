@@ -9,4 +9,14 @@ npm install
 npm run dev
 ```
 
-`npm test` includes the engine checks: same seed, HOLD versus TIGHT, and one CONJURE forecast per airframe.
+The server owns the picture. The client sends a role and commands, never a world.
+
+| Method | Path | |
+|---|---|---|
+| GET | `/api/odin/health` | |
+| GET | `/api/odin/picture?exercise=hearth&role=observer` | |
+| POST | `/api/odin/step` | `{ exercise, role, steps, commands }` |
+| POST | `/api/odin/reset` | `{ scenario, seed, role }` commander only |
+
+Observer and analyst can watch the clock. Approve, deny, ROE, launch, and adopt require commander.
+
