@@ -116,14 +116,14 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           {SCENARIOS.map((scenario) => (
             <Button
               key={scenario.id}
-              tone={world.scenario === scenario.id ? "accent" : "ghost"}
+              tone={world.scenario === scenario.id ? "ink" : "ghost"}
               onClick={() => void load(scenario.id)}
             >
               {scenario.label}
             </Button>
           ))}
           {(["observer", "analyst", "commander"] as const).map((name) => (
-            <Button key={name} tone={role === name ? "accent" : "ghost"} onClick={() => setRole(name)}>
+            <Button key={name} tone={role === name ? "ink" : "ghost"} onClick={() => setRole(name)}>
               {name}
             </Button>
           ))}
@@ -162,7 +162,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                   </span>
                   <span className="h-1 overflow-hidden rounded-md bg-line">
                     <span
-                      className="block h-full bg-accent"
+                      className="block h-full bg-fg"
                       style={{ width: `${Math.round(asset.battery * 100)}%` }}
                     />
                   </span>
@@ -185,17 +185,17 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
 
         <section className="flex min-h-0 flex-col border-b border-line lg:border-r lg:border-b-0">
           <div className="flex flex-wrap items-center gap-2 px-4 py-2">
-            <span className="font-mono text-xs text-accent">{clock(world.tick)}</span>
+            <span className="font-mono text-xs text-fg">{clock(world.tick)}</span>
             <span className="font-mono text-xs text-muted">ROE {world.roe}</span>
             <span className="font-mono text-xs text-muted">hash {world.record.toString(16)}</span>
             <Button
-              tone={world.roe === "HOLD" ? "accent" : "ghost"}
+              tone={world.roe === "HOLD" ? "ink" : "ghost"}
               disabled={role !== "commander"}
               onClick={() => send({ type: "roe", roe: world.roe === "HOLD" ? "TIGHT" : "HOLD" })}
             >
               {world.roe === "HOLD" ? "Release to TIGHT" : "Weapons HOLD"}
             </Button>
-            <Button tone={whiteCell ? "accent" : "ghost"} onClick={() => setWhiteCell((v) => !v)}>
+            <Button tone={whiteCell ? "ink" : "ghost"} onClick={() => setWhiteCell((v) => !v)}>
               {whiteCell ? "White cell on" : "White cell"}
             </Button>
           </div>
@@ -254,7 +254,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                   })()}
                   <div className="mt-3 flex gap-2">
                     <Button
-                      tone="accent"
+                      tone="ink"
                       disabled={role !== "commander"}
                       onClick={() => send({ type: "approve", engagementId: engagement.id })}
                     >
@@ -307,7 +307,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
               ["stack", "Stack"],
             ] as const
           ).map(([id, label]) => (
-            <Button key={id} tone={tab === id ? "accent" : "ghost"} onClick={() => setTab(id)}>
+            <Button key={id} tone={tab === id ? "ink" : "ghost"} onClick={() => setTab(id)}>
               {label}
             </Button>
           ))}
@@ -317,7 +317,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           {tab === "log" ? (
             <ul className="font-mono text-xs leading-5">
               {[...world.events].reverse().map((event) => (
-                <li key={`${event.hash}-${event.tick}-${event.text}`} className={event.level === "act" ? "text-accent" : event.level === "warn" ? "text-alert" : "text-muted"}>
+                <li key={`${event.hash}-${event.tick}-${event.text}`} className={event.level === "act" || event.level === "warn" ? "text-fg" : "text-muted"}>
                   {String(event.tick).padStart(4, "0")} {event.hash} {event.text}
                 </li>
               ))}
@@ -343,7 +343,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
               {world.forecasts.map((forecast) => (
                 <li key={forecast.klass}>
                   <p className="text-sm">
-                    <span className="font-mono text-xs text-accent">{forecast.klass}</span> oppose {Math.round(forecast.oppose * 100)}% · support{" "}
+                    <span className="font-mono text-xs text-fg">{forecast.klass}</span> oppose {Math.round(forecast.oppose * 100)}% · support{" "}
                     {Math.round(forecast.support * 100)}% · {forecast.confidence}
                   </p>
                   <p className="text-sm text-muted">
@@ -371,7 +371,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                 {MODULES.map((mod) => (
                   <li key={mod.id}>
                     <p className="text-sm">
-                      <span className="font-mono text-xs text-accent">{mod.layer}</span> {mod.id}
+                      <span className="font-mono text-xs text-fg">{mod.layer}</span> {mod.id}
                     </p>
                     <p className="text-sm text-muted">{mod.role}. {mod.method}</p>
                   </li>

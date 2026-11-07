@@ -33,7 +33,6 @@ export function Plot({ world, whiteCell, selected, onSelect }: PlotProps) {
       const line = pick("--color-line", "#d6dce1");
       const fg = pick("--color-fg", "#111820");
       const muted = pick("--color-muted", "#52606b");
-      const accent = pick("--color-accent", "#2454dd");
       const alert = pick("--color-alert", "#111820");
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, width, height);
@@ -58,7 +57,7 @@ export function Plot({ world, whiteCell, selected, onSelect }: PlotProps) {
 
       for (const region of world.regions) {
         ctx.save();
-        ctx.strokeStyle = region.kind === "objective" || region.kind === "base" ? accent : muted;
+        ctx.strokeStyle = region.kind === "objective" || region.kind === "base" ? fg : muted;
         ctx.setLineDash(region.kind === "water" || region.kind === "urban" ? [4, 4] : []);
         ctx.strokeRect(X(region.x), Y(region.y + region.h), region.w * sx, region.h * sy);
         ctx.fillStyle = muted;
@@ -122,7 +121,7 @@ export function Plot({ world, whiteCell, selected, onSelect }: PlotProps) {
           ctx.lineTo(-5, 6);
           ctx.closePath();
         }
-        ctx.strokeStyle = asset.klass === "AZRAIL" ? alert : accent;
+        ctx.strokeStyle = fg;
         ctx.stroke();
         ctx.restore();
         if (selected === asset.id) {
