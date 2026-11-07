@@ -1,8 +1,10 @@
 @import "tailwindcss";
+/* Shared Infinitum app shell (copy of infinitum-nexus packages/ui/app-shell.css), in the base layer so utilities still win. */
+@import "./app-shell.css" layer(base);
 
 @theme {
   --color-bg: #ffffff;
-  --color-surface: #f4f6f8;
+  --color-surface: #ffffff;
   --color-line: #d6dce1;
   --color-fg: #111820;
   --color-muted: #52606b;
@@ -11,35 +13,11 @@
   --color-alert: #111820;
   --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --radius-md: 10px;
-}
-
-:root {
-  color-scheme: light;
-  --ink: #111820;
-  --muted: #52606b;
-  --line: #d6dce1;
-  --accent: #2454dd;
-  --paper: #ffffff;
-  --m-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --color-bg: #ffffff;
-  --color-surface: #f4f6f8;
-  --color-line: #d6dce1;
-  --color-fg: #111820;
-  --color-muted: #52606b;
-  --color-accent: #2454dd;
-  --color-on-accent: #ffffff;
-  --color-alert: #111820;
+  --radius-md: 0px;
+  --radius-lg: 0px;
 }
 
 @layer base {
-  html,
-  body {
-    background: var(--paper);
-    color: var(--ink);
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 400;
-  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;

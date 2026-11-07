@@ -102,17 +102,20 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg lg:h-dvh lg:overflow-hidden">
-      <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
-        <div className="min-w-40">
-          <p className="text-[15px] font-medium tracking-normal text-fg">
-            ODIN°<sup className="text-[0.6em]">™</sup>
-          </p>
-          <h1 className="text-base font-normal leading-snug text-muted">DAEMON exercise</h1>
-        </div>
-        <p className="max-w-xl text-sm text-muted">
+      <header className="app-bar flex-wrap py-2">
+        <a className="app-wordmark" href="/">
+          ODIN°<sup className="tm">™</sup>
+        </a>
+        <nav className="app-nav" aria-label="Main">
+          <a href="/" aria-current="page">
+            DAEMON exercise
+          </a>
+        </nav>
+        <p className="app-meta hidden max-w-md xl:block">
           {world.title}. The server holds the picture. A commander approves every engagement.
         </p>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <h1 className="sr-only">DAEMON exercise</h1>
+        <div className="app-actions flex-wrap">
           {SCENARIOS.map((scenario) => (
             <Button
               key={scenario.id}
