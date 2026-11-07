@@ -36,7 +36,7 @@ npm run deploy            # production deploy, which needs sign-off first
 
 Data lives in the shared **Infinitum Corp** Supabase project (ref `ivqiskeziohbbtkcvlun`) in the `odin_daemon` schema. RLS is on and there are no policies, so the anon and authenticated keys can't reach these tables. Only the Worker can, over `DATABASE_URL`. The browser gets no database key at all.
 
-- Migrations are in `supabase/migrations/`. Apply them with `npm run db:push` (`supabase db push`, after `supabase link --project-ref ivqiskeziohbbtkcvlun`). Don't use `npm run db:migrate` against the shared project: it keeps its own `public._migrations` table, which every product would share.
+- Migrations are in `supabase/migrations/`. Apply them with `npm run db:push` (`supabase db push`, after `supabase link --project-ref ivqiskeziohbbtkcvlun`). Because the project is shared, the CLI may report migration versions that other products pushed. If it does, apply the file in the SQL editor or with `psql "$DATABASE_URL" -f <file>`. Don't use `npm run db:migrate` against the shared project: it keeps its own `public._migrations` table, which every product would share.
 - Without `DATABASE_URL`, local dev runs on embedded PGLite and applies the same migrations on startup.
 - `supabase/migrations/auth/` holds the opt-in Better Auth schema. It isn't applied unless sign-in is turned on.
 
