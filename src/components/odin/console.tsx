@@ -104,8 +104,10 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
     <div className="flex min-h-dvh flex-col bg-bg text-fg lg:h-dvh lg:overflow-hidden">
       <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
         <div className="min-w-40">
-          <p className="font-mono text-xs tracking-widest text-accent">ODIN°</p>
-          <h1 className="text-lg font-semibold leading-tight">DAEMON combat sim</h1>
+          <p className="text-[15px] font-medium tracking-normal text-fg">
+            ODIN°<sup className="text-[0.6em]">™</sup>
+          </p>
+          <h1 className="text-base font-normal leading-snug text-muted">DAEMON exercise</h1>
         </div>
         <p className="max-w-xl text-sm text-muted">
           {world.title}. The server holds the picture. A commander approves every engagement.
@@ -137,7 +139,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
       <div className="grid flex-1 lg:min-h-0 lg:grid-cols-[16rem_minmax(0,1fr)_22rem]">
         <section className="border-b border-line lg:overflow-auto lg:border-r lg:border-b-0">
           <div className="flex items-center justify-between px-4 py-3">
-            <h2 className="font-mono text-xs tracking-widest text-muted">BLUE AIR</h2>
+            <h2 className="text-xs text-muted">Blue air</h2>
             <span className="font-mono text-xs text-muted">{docked} docked</span>
           </div>
           <ul>
@@ -218,7 +220,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
 
         <section className="lg:overflow-auto">
           <div className="flex items-center justify-between px-4 py-3">
-            <h2 className="font-mono text-xs tracking-widest text-muted">APPROVAL QUEUE</h2>
+            <h2 className="text-xs text-muted">Approval queue</h2>
             <span className="font-mono text-xs text-alert">{pending.length}</span>
           </div>
           {pending.length === 0 && committed.length === 0 ? (
@@ -270,7 +272,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
               ))}
             </ul>
           )}
-          <h2 className="border-t border-line px-4 py-3 font-mono text-xs tracking-widest text-muted">TRACKS</h2>
+          <h2 className="border-t border-line px-4 py-3 text-xs text-muted">Tracks</h2>
           <ul>
             {world.tracks.length === 0 ? (
               <li className="px-4 pb-4 text-sm text-muted">ARGUS has no track yet. Sensors need a few seconds.</li>

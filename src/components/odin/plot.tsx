@@ -29,12 +29,12 @@ export function Plot({ world, whiteCell, selected, onSelect }: PlotProps) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const css = getComputedStyle(wrap);
       const pick = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
-      const bg = pick("--color-bg", "#12140f");
-      const line = pick("--color-line", "#2c3126");
-      const fg = pick("--color-fg", "#e6e2d6");
-      const muted = pick("--color-muted", "#8f8b7c");
-      const accent = pick("--color-accent", "#d6a23a");
-      const alert = pick("--color-alert", "#c4492c");
+      const bg = pick("--color-bg", "#ffffff");
+      const line = pick("--color-line", "#d6dce1");
+      const fg = pick("--color-fg", "#111820");
+      const muted = pick("--color-muted", "#52606b");
+      const accent = pick("--color-accent", "#2454dd");
+      const alert = pick("--color-alert", "#111820");
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, width, height);
       const { w: bw, h: bh } = world.bounds;
@@ -62,7 +62,7 @@ export function Plot({ world, whiteCell, selected, onSelect }: PlotProps) {
         ctx.setLineDash(region.kind === "water" || region.kind === "urban" ? [4, 4] : []);
         ctx.strokeRect(X(region.x), Y(region.y + region.h), region.w * sx, region.h * sy);
         ctx.fillStyle = muted;
-        ctx.font = "11px IBM Plex Mono, ui-monospace, monospace";
+        ctx.font = "12px Helvetica Neue, Helvetica, Arial, sans-serif";
         ctx.fillText(region.name, X(region.x) + 6, Y(region.y + region.h) + 14);
         ctx.restore();
       }
@@ -102,7 +102,7 @@ export function Plot({ world, whiteCell, selected, onSelect }: PlotProps) {
           ctx.strokeRect(x - 10, y - 10, 20, 20);
         }
         ctx.fillStyle = track.hostile ? alert : muted;
-        ctx.font = "11px IBM Plex Mono, ui-monospace, monospace";
+        ctx.font = "12px Helvetica Neue, Helvetica, Arial, sans-serif";
         ctx.fillText(track.id, x + 8, y - 6);
       }
 
@@ -130,12 +130,12 @@ export function Plot({ world, whiteCell, selected, onSelect }: PlotProps) {
           ctx.strokeRect(x - 11, y - 11, 22, 22);
         }
         ctx.fillStyle = fg;
-        ctx.font = "11px IBM Plex Mono, ui-monospace, monospace";
+        ctx.font = "12px Helvetica Neue, Helvetica, Arial, sans-serif";
         ctx.fillText(asset.callsign, x + 8, y + 12);
       }
 
       ctx.fillStyle = muted;
-      ctx.font = "11px IBM Plex Mono, ui-monospace, monospace";
+      ctx.font = "12px Helvetica Neue, Helvetica, Arial, sans-serif";
       ctx.fillText("N", 10, 16);
       ctx.beginPath();
       ctx.moveTo(16, 22);

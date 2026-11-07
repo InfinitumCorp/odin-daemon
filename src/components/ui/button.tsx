@@ -9,10 +9,10 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex min-h-11 items-center justify-center rounded-md px-3 text-sm font-medium motion-safe:transition-colors disabled:opacity-50",
+        "inline-flex min-h-10 items-center justify-center rounded-lg px-3 text-sm font-normal motion-safe:transition-colors motion-safe:duration-150 disabled:opacity-50",
         tone === "accent" && "bg-accent text-on-accent hover:opacity-90",
-        tone === "alert" && "bg-alert text-fg hover:opacity-90",
-        tone === "ghost" && "border border-line bg-surface text-fg hover:border-accent",
+        tone === "alert" && "bg-fg text-on-accent hover:opacity-90",
+        tone === "ghost" && "border border-line bg-bg text-fg hover:border-accent",
         className,
       )}
       {...props}
