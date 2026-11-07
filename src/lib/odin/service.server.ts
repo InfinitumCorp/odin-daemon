@@ -46,7 +46,12 @@ function assertClearance(role: Role, commands: Command[]): void {
 }
 
 function canPersist(): boolean {
-  return typeof (import.meta as { glob?: unknown }).glob === "function";
+  // Dev (Vite) has import.meta.glob for the PGLite fallback; a deployed Worker
+  // persists only when DATABASE_URL points at Supabase. Plain `node --test`
+  // has neither, so tests stay in memory.
+  if (typeof (import.meta as { glob?: unknown }).glob === "function") return true;
+  const url = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
+  return Boolean(url && url.trim());
 }
 
 async function readDb(id: string): Promise<World | null> {
@@ -54,14 +59,10 @@ async function readDb(id: string): Promise<World | null> {
   try {
     const { getSql } = await import("../db.ts");
     const sql = await getSql();
-    await sql.query(
-      `create table if not exists daemon_exercise (
-        id text primary key,
-        world text not null,
-        updated_at timestamptz not null default current_timestamp
-      )`,
+    const rows = await sql.query<{ world: string }>(
+      "select world from odin_daemon.daemon_exercise where id = $1",
+      [id],
     );
-    const rows = await sql.query<{ world: string }>("select world from daemon_exercise where id = $1", [id]);
     const raw = rows[0]?.world;
     if (!raw) return null;
     const world = JSON.parse(raw) as World;
@@ -73,21 +74,21 @@ async function readDb(id: string): Promise<World | null> {
   }
 }
 
-function writeDb(id: string, world: World): void {
+// Awaited by callers: a Worker may stop running un-awaited work once the
+// response is sent, so a fire-and-forget write could be lost.
+async function writeDb(id: string, world: World): Promise<void> {
   if (!canPersist()) return;
-  void (async () => {
-    try {
-      const { getSql } = await import("../db.ts");
-      const sql = await getSql();
-      await sql.query(
-        `insert into daemon_exercise (id, world, updated_at) values ($1, $2, now())
-         on conflict (id) do update set world = excluded.world, updated_at = now()`,
-        [id, JSON.stringify(world)],
-      );
-    } catch (err) {
-      console.error("[daemon] write failed", err);
-    }
-  })();
+  try {
+    const { getSql } = await import("../db.ts");
+    const sql = await getSql();
+    await sql.query(
+      `insert into odin_daemon.daemon_exercise (id, world, updated_at) values ($1, $2, now())
+       on conflict (id) do update set world = excluded.world, updated_at = now()`,
+      [id, JSON.stringify(world)],
+    );
+  } catch (err) {
+    console.error("[daemon] write failed", err);
+  }
 }
 
 function enqueue<T>(slot: Slot, job: () => Promise<T>): Promise<T> {
@@ -106,7 +107,7 @@ async function slotFor(id: string): Promise<Slot> {
   const scenario = SCENARIOS.has(id as ScenarioId) ? (id as ScenarioId) : "hearth";
   const slot: Slot = { world: stored ?? makeScenario(scenario, 1107), chain: Promise.resolve() };
   slots().set(id, slot);
-  if (!stored) writeDb(id, slot.world);
+  if (!stored) await writeDb(id, slot.world);
   return slot;
 }
 
@@ -122,7 +123,7 @@ export async function stepExercise(id: string, role: Role, steps: number, comman
   return enqueue(slot, async () => {
     const next = runSteps(slot.world, n, commands);
     slot.world = next;
-    if (commands.length > 0 || next.tick % 5 === 0) writeDb(id, next);
+    if (commands.length > 0 || next.tick % 5 === 0) await writeDb(id, next);
     return structuredClone(next);
   });
 }
@@ -134,7 +135,7 @@ export async function resetExercise(scenario: ScenarioId, seed: number, role: Ro
   slots().set(scenario, slot);
   return enqueue(slot, async () => {
     slot.world = world;
-    writeDb(scenario, world);
+    await writeDb(scenario, world);
     return structuredClone(world);
   });
 }
