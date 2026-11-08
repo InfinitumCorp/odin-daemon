@@ -2,7 +2,7 @@
 
 @theme {
   --color-bg: #ffffff;
-  --color-surface: #f4f6f8;
+  --color-surface: #f3f5f7;
   --color-line: #d6dce1;
   --color-fg: #111820;
   --color-muted: #52606b;
@@ -23,7 +23,7 @@
   --paper: #ffffff;
   --m-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --color-bg: #ffffff;
-  --color-surface: #f4f6f8;
+  --color-surface: #f3f5f7;
   --color-line: #d6dce1;
   --color-fg: #111820;
   --color-muted: #52606b;
