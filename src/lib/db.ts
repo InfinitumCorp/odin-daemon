@@ -11,10 +11,10 @@ const databaseUrl =
   rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
 /**
- * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
+ * Active backend: real **Postgres** (Supabase) when `DATABASE_URL` is set (deployed / configured
  * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
  * the app has a working database even with nothing configured — the live preview
- * included. Swap in Neon later by just setting `DATABASE_URL`; no code changes.
+ * included. Switch to Supabase by just setting `DATABASE_URL`; no code changes.
  */
 export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
 
@@ -85,14 +85,35 @@ function toSql(run: Run): Sql {
   return sql;
 }
 
+/** True inside the Cloudflare Workers runtime (workerd), including wrangler dev. */
+function isCloudflareWorker(): boolean {
+  return typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
+}
+
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
-    // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
-    // pooled endpoint. One pool per process; warm serverless instances reuse it.
-    const { Pool, types } = await import("pg");
+    // Regular Postgres driver: node-postgres (`pg`) — works with Supabase's
+    // pooler (and any Postgres). Node: one pool per process.
+    const { Client, Pool, types } = await import("pg");
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
+    if (isCloudflareWorker()) {
+      // Workers can't reuse a socket opened by another request, so a shared
+      // Pool fails on the second request. Open one short-lived client per
+      // query instead (point DATABASE_URL at Supabase's transaction pooler,
+      // port 6543, which makes this cheap).
+      return toSql(async <T>(text: string, params: unknown[]) => {
+        const client = new Client({ connectionString: databaseUrl });
+        await client.connect();
+        try {
+          const res = await client.query(text, params);
+          return res.rows as T[];
+        } finally {
+          await client.end().catch(() => undefined);
+        }
+      });
+    }
     const pool = new Pool({ connectionString: databaseUrl });
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
@@ -129,15 +150,15 @@ async function createPgliteSql(): Promise<Sql> {
   });
   const pg = await globalRef.__pgliteInstance__;
 
-  // Apply migrations/ (the single schema source) so preview matches production.
+  // Apply supabase/migrations/ (the single schema source) so preview matches production.
   // SQL is inlined by the bundler via import.meta.glob (no runtime fs); applied
   // files are tracked in _migrations. The glob does not descend, so the opt-in
-  // auth schema under migrations/auth/ stays out. Runs once per module instance
+  // auth schema under supabase/migrations/auth/ stays out. Runs once per module instance
   // — so an HMR reload after adding a migration file applies it live — with
   // passes serialized on a global chain so concurrent callers never
   // double-apply.
   const migrate = async (): Promise<void> => {
-    const migrations = import.meta.glob("/migrations/*.sql", {
+    const migrations = import.meta.glob("/supabase/migrations/*.sql", {
       query: "?raw",
       import: "default",
       eager: true,
@@ -183,7 +204,7 @@ async function createSql(): Promise<Sql> {
  * Get the shared, **server-only** SQL client. Neon when `DATABASE_URL` is set,
  * otherwise the local PGLite fallback. Memoized — safe to call per request.
  *
- * Schema comes from `migrations/*.sql`, auto-applied before the first query on
+ * Schema comes from `supabase/migrations/*.sql`, auto-applied before the first query on
  * both backends — define tables there, never inline in server functions.
  */
 export function getSql(): Promise<Sql> {
@@ -195,7 +216,7 @@ export function getSql(): Promise<Sql> {
 }
 
 /**
- * The shared PGLite instance (preview only), with `migrations/*.sql` applied.
+ * The shared PGLite instance (preview only), with `supabase/migrations/*.sql` applied.
  * Lets Better Auth persist to the SAME embedded DB as app data in preview (via a
  * Kysely dialect). Throws when `DATABASE_URL` is set (that path uses Neon).
  */
@@ -213,7 +234,7 @@ export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite
  * Finish DB bootstrap before the server handles traffic.
  *
  * - **PGLite** (preview / no `DATABASE_URL`): open the in-memory DB and apply
- *   `migrations/*.sql`. Idempotent — concurrent callers share one promise.
+ *   `supabase/migrations/*.sql`. Idempotent — concurrent callers share one promise.
  * - **Neon**: no-op (pool is created lazily on first query).
  *
  * Vite `configureServer` awaits this at dev startup; production imports of this

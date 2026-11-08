@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Nitro's cloudflare_module preset reads this file at build time, fills in
+  // `main` (.output/server/index.mjs) and `assets` (.output/public), and writes
+  // the merged config to .output/server/wrangler.json. `wrangler deploy` from
+  // the repo root picks that up via .wrangler/deploy/config.json, so always
+  // run `npm run build` first.
+  //
+  // Secrets (DATABASE_URL, …) are set with `wrangler secret put`, never here.
+  // See README → "Environment variables".
+  "name": "odin-daemon",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true }
+}

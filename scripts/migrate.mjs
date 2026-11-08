@@ -6,7 +6,7 @@
  * in ../migrations to DATABASE_URL. Each file is applied in one transaction and
  * recorded in a `_migrations` table, so it runs once and is safe to re-run.
  *
- * The read is non-recursive, so the opt-in auth schema under migrations/auth/
+ * The read is non-recursive, so the opt-in auth schema under supabase/migrations/auth/
  * is not applied to an app that never asked for sign-in.
  *
  * No DATABASE_URL (local / preview builds) -> skip; the PGLite fallback applies
@@ -26,14 +26,14 @@ if (!databaseUrl) {
   process.exit(0);
 }
 
-const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "supabase", "migrations");
 
 async function main() {
   let entries;
   try {
     entries = await readdir(migrationsDir);
   } catch {
-    console.log("[migrate] no migrations/ directory — nothing to do.");
+    console.log("[migrate] no supabase/migrations/ directory — nothing to do.");
     return;
   }
   // An app with no schema of its own must not pay for a database connection.
