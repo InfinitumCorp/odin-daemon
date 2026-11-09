@@ -3,14 +3,7 @@
 export type ScenarioId = "hearth" | "harbor" | "gallery";
 
 export type AssetClass =
-  | "CHERUBIM"
-  | "SERAPHIM"
-  | "AZRAIL"
-  | "POLLEN"
-  | "FLOWER"
-  | "SLUG"
-  | "ORBIS"
-  | "EON";
+  "CHERUBIM" | "SERAPHIM" | "AZRAIL" | "POLLEN" | "FLOWER" | "SLUG" | "ORBIS" | "EON";
 
 export type AssetStatus = "airborne" | "docked" | "lost-link" | "fixed";
 
@@ -169,4 +162,11 @@ export interface Trace {
   ms: number;
   bytesIn: number;
   bytesOut: number;
+  /** Present only while geo routing is on. Omitted when the toggle is off. */
+  geo?: {
+    country: string | null;
+    categories: string[];
+    policy: "annotate";
+    datasets: "ready" | "missing";
+  };
 }

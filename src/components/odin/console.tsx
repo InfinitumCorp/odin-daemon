@@ -1,5 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
+import { geoRoutingPref } from "@/lib/geo/pref";
 import { MODULES, PROVENANCE } from "@/lib/odin/catalog";
 import { forecastFor } from "@/lib/odin/conjure";
 import { airframe } from "@/lib/odin/models/index";
@@ -23,7 +24,9 @@ function clock(tick: number): string {
 export function Console({ initial }: { initial: { world: World; trace: Trace } }) {
   const step = useServerFn(stepSim);
   const reset = useServerFn(resetSim);
+  const geoPref = useServerFn(geoRoutingPref);
   const [world, setWorld] = useState(initial.world);
+  const [geoRouting, setGeoRouting] = useState(false);
   const [traces, setTraces] = useState<Trace[]>([initial.trace]);
   const [running, setRunning] = useState(true);
   const [pace, setPace] = useState(4);
@@ -37,6 +40,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
   const queue = useRef<Command[]>([]);
   const busy = useRef(false);
   const paceRef = useRef(pace);
+  const geoEpoch = useRef(0);
   worldRef.current = world;
   roleRef.current = role;
   paceRef.current = pace;
@@ -67,12 +71,58 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
   };
 
   useEffect(() => {
+    const epoch = ++geoEpoch.current;
+    let cancel = false;
+    void geoPref({ data: {} })
+      .then((status) => {
+        if (cancel || epoch !== geoEpoch.current) return;
+        setGeoRouting(status.enabled);
+        window.localStorage.setItem("infinitum.geoRouting", status.enabled ? "1" : "0");
+      })
+      .catch(() => {
+        if (
+          !cancel &&
+          epoch === geoEpoch.current &&
+          window.localStorage.getItem("infinitum.geoRouting") === "1"
+        ) {
+          setGeoRouting(true);
+        }
+      });
+    return () => {
+      cancel = true;
+    };
+    // Read the saved toggle once. The server function identity is not a reason to reload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (!running) return;
     const id = window.setInterval(() => void beat(), 800);
     return () => window.clearInterval(id);
     // beat closes over refs only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
+
+  const toggleGeo = async () => {
+    const next = !geoRouting;
+    const epoch = ++geoEpoch.current;
+    setGeoRouting(next);
+    window.localStorage.setItem("infinitum.geoRouting", next ? "1" : "0");
+    try {
+      const status = await geoPref({ data: { enabled: next } });
+      if (epoch !== geoEpoch.current) return;
+      setGeoRouting(status.enabled);
+      window.localStorage.setItem("infinitum.geoRouting", status.enabled ? "1" : "0");
+      if (next && !status.enabled && status.locked) {
+        setError("Geo routing stays off while INFINITUM_GEO_ENABLED locks it.");
+      }
+    } catch (err) {
+      if (epoch !== geoEpoch.current) return;
+      setGeoRouting(!next);
+      window.localStorage.setItem("infinitum.geoRouting", !next ? "1" : "0");
+      setError(err instanceof Error ? err.message : "Geo routing preference was not saved.");
+    }
+  };
 
   const send = (command: Command) => {
     queue.current.push(command);
@@ -136,6 +186,13 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           <Button tone="ghost" onClick={() => setPace((p) => (p === 4 ? 8 : 4))}>
             {pace === 4 ? "Pace 4s" : "Pace 8s"}
           </Button>
+          <Button
+            tone={geoRouting ? "ink" : "ghost"}
+            aria-pressed={geoRouting}
+            onClick={() => void toggleGeo()}
+          >
+            {geoRouting ? "Geo routing on" : "Geo routing"}
+          </Button>
         </div>
       </header>
 
@@ -161,7 +218,8 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                     <span className="font-mono text-xs text-muted">{asset.klass}</span>
                   </span>
                   <span className="font-mono text-xs text-muted">
-                    {asset.status} · link {Math.round(asset.link * 100)}% · bat {Math.round(asset.battery * 100)}%
+                    {asset.status} · link {Math.round(asset.link * 100)}% · bat{" "}
+                    {Math.round(asset.battery * 100)}%
                   </span>
                   <span className="h-1 overflow-hidden rounded-none bg-line">
                     <span
@@ -205,8 +263,9 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           <Plot world={world} whiteCell={whiteCell} selected={selected} onSelect={setSelected} />
           {selectedAsset ? (
             <p className="border-t border-line px-4 py-2 font-mono text-xs text-muted">
-              {selectedAsset.callsign} · {airframe(selectedAsset.klass).klass} backend · {airframe(selectedAsset.klass).role} ·{" "}
-              {Math.round(selectedAsset.pos.x)} {Math.round(selectedAsset.pos.y)} alt {selectedAsset.alt}m ·{" "}
+              {selectedAsset.callsign} · {airframe(selectedAsset.klass).klass} backend ·{" "}
+              {airframe(selectedAsset.klass).role} · {Math.round(selectedAsset.pos.x)}{" "}
+              {Math.round(selectedAsset.pos.y)} alt {selectedAsset.alt}m ·{" "}
               {selectedAsset.task ? `${selectedAsset.task.kind}` : "no task"}
               {forecastFor(world, selectedAsset.klass)
                 ? ` · CONJURE oppose ${Math.round(forecastFor(world, selectedAsset.klass)!.oppose * 100)}% · ${forecastFor(world, selectedAsset.klass)!.resistant}`
@@ -215,7 +274,8 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           ) : null}
           {selectedTrack ? (
             <p className="border-t border-line px-4 py-2 font-mono text-xs text-muted">
-              {selectedTrack.id} {selectedTrack.klass} conf {Math.round(selectedTrack.confidence * 100)}% cov {Math.round(selectedTrack.cov)} ·{" "}
+              {selectedTrack.id} {selectedTrack.klass} conf{" "}
+              {Math.round(selectedTrack.confidence * 100)}% cov {Math.round(selectedTrack.cov)} ·{" "}
               {selectedTrack.sensors.join(", ") || "coasting"}
             </p>
           ) : null}
@@ -227,7 +287,9 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
             <span className="font-mono text-xs text-alert">{pending.length}</span>
           </div>
           {pending.length === 0 && committed.length === 0 ? (
-            <p className="px-4 pb-4 text-sm text-muted">No shot is waiting. AZRAIL does not close unless you approve one.</p>
+            <p className="px-4 pb-4 text-sm text-muted">
+              No shot is waiting. AZRAIL does not close unless you approve one.
+            </p>
           ) : (
             <ul className="flex flex-col gap-3 px-4 pb-4">
               {committed.map((engagement) => (
@@ -235,7 +297,9 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                   <p className="text-sm font-medium">
                     {engagement.shooterId} closing on {engagement.trackId}
                   </p>
-                  <p className="mt-1 text-sm text-muted">Approved. Resolves only inside the bubble, and only while ROE is TIGHT.</p>
+                  <p className="mt-1 text-sm text-muted">
+                    Approved. Resolves only inside the bubble, and only while ROE is TIGHT.
+                  </p>
                 </li>
               ))}
               {pending.map((engagement) => (
@@ -244,14 +308,17 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                     {engagement.shooterId} → {engagement.trackId}
                   </p>
                   <p className="mt-1 text-sm text-muted">{engagement.reason}</p>
-                  <p className="mt-1 font-mono text-xs text-muted">Pk {Math.round(engagement.pk * 100)}% · {engagement.id}</p>
+                  <p className="mt-1 font-mono text-xs text-muted">
+                    Pk {Math.round(engagement.pk * 100)}% · {engagement.id}
+                  </p>
                   {(() => {
                     const shooter = world.assets.find((a) => a.id === engagement.shooterId);
                     const forecast = shooter ? forecastFor(world, shooter.klass) : undefined;
                     if (!forecast) return null;
                     return (
                       <p className="mt-1 text-sm text-muted">
-                        CONJURE {forecast.confidence} · oppose {Math.round(forecast.oppose * 100)}% · {forecast.resistant}. {forecast.adjustment}
+                        CONJURE {forecast.confidence} · oppose {Math.round(forecast.oppose * 100)}%
+                        · {forecast.resistant}. {forecast.adjustment}
                       </p>
                     );
                   })()}
@@ -278,7 +345,9 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           <h2 className="border-t border-line px-4 py-3 text-xs text-muted">Tracks</h2>
           <ul>
             {world.tracks.length === 0 ? (
-              <li className="px-4 pb-4 text-sm text-muted">ARGUS has no track yet. Sensors need a few seconds.</li>
+              <li className="px-4 pb-4 text-sm text-muted">
+                ARGUS has no track yet. Sensors need a few seconds.
+              </li>
             ) : (
               world.tracks.map((track) => (
                 <li key={track.id}>
@@ -287,7 +356,9 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                     onClick={() => setSelected(track.id)}
                     className="flex w-full items-baseline justify-between gap-2 border-t border-line px-4 py-3 text-left"
                   >
-                    <span className={track.hostile ? "text-sm text-alert" : "text-sm"}>{track.id}</span>
+                    <span className={track.hostile ? "text-sm text-alert" : "text-sm"}>
+                      {track.id}
+                    </span>
                     <span className="font-mono text-xs text-muted">
                       {track.klass} · {Math.round(track.confidence * 100)}%
                     </span>
@@ -320,7 +391,12 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           {tab === "log" ? (
             <ul className="font-mono text-xs leading-5">
               {[...world.events].reverse().map((event) => (
-                <li key={`${event.hash}-${event.tick}-${event.text}`} className={event.level === "act" || event.level === "warn" ? "text-fg" : "text-muted"}>
+                <li
+                  key={`${event.hash}-${event.tick}-${event.text}`}
+                  className={
+                    event.level === "act" || event.level === "warn" ? "text-fg" : "text-muted"
+                  }
+                >
                   {String(event.tick).padStart(4, "0")} {event.hash} {event.text}
                 </li>
               ))}
@@ -329,12 +405,19 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           {tab === "coa" ? (
             <ul className="flex flex-col gap-3">
               {world.coas.map((coa) => (
-                <li key={coa.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+                <li
+                  key={coa.id}
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3"
+                >
                   <div>
                     <p className="text-sm font-medium">{coa.title}</p>
                     <p className="text-sm text-muted">{coa.summary}</p>
                   </div>
-                  <Button tone="ghost" disabled={role !== "commander"} onClick={() => send({ type: "adopt", coaId: coa.id })}>
+                  <Button
+                    tone="ghost"
+                    disabled={role !== "commander"}
+                    onClick={() => send({ type: "adopt", coaId: coa.id })}
+                  >
                     Adopt
                   </Button>
                 </li>
@@ -346,7 +429,8 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
               {world.forecasts.map((forecast) => (
                 <li key={forecast.klass}>
                   <p className="text-sm">
-                    <span className="font-mono text-xs text-fg">{forecast.klass}</span> oppose {Math.round(forecast.oppose * 100)}% · support{" "}
+                    <span className="font-mono text-xs text-fg">{forecast.klass}</span> oppose{" "}
+                    {Math.round(forecast.oppose * 100)}% · support{" "}
                     {Math.round(forecast.support * 100)}% · {forecast.confidence}
                   </p>
                   <p className="text-sm text-muted">
@@ -360,7 +444,15 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
             <ul className="font-mono text-xs leading-5 text-muted">
               {traces.map((trace, i) => (
                 <li key={`${trace.fn}-${i}`}>
-                  POST {trace.fn} {trace.ms.toFixed(1)} ms · in {trace.bytesIn} B · out {trace.bytesOut} B
+                  POST {trace.fn} {trace.ms.toFixed(1)} ms · in {trace.bytesIn} B · out{" "}
+                  {trace.bytesOut} B
+                  {trace.geo
+                    ? ` · geo ${trace.geo.datasets}${trace.geo.country ? ` ${trace.geo.country}` : ""}${
+                        trace.geo.categories.length
+                          ? ` ${trace.geo.categories.slice(0, 4).join(",")}`
+                          : ""
+                      }`
+                    : ""}
                 </li>
               ))}
               <li className="mt-2 text-fg">odin.bootstrap(scenario, seed) → world</li>
@@ -376,7 +468,9 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                     <p className="text-sm">
                       <span className="font-mono text-xs text-fg">{mod.layer}</span> {mod.id}
                     </p>
-                    <p className="text-sm text-muted">{mod.role}. {mod.method}</p>
+                    <p className="text-sm text-muted">
+                      {mod.role}. {mod.method}
+                    </p>
                   </li>
                 ))}
               </ul>
