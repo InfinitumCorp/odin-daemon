@@ -79,7 +79,7 @@ list, not a judgement call:
   / an explicitly identified leaderboard. Otherwise auth stays OFF. **A high
   score in `localStorage` is not a reason to add auth.**
 - **Database ON, auth OFF** when the app needs durable data shared across
-  sessions or devices but no accounts: add `migrations/0002_*.sql` and keep the
+  sessions or devices but no accounts: add `supabase/migrations/<timestamp>_*.sql` (in this product's schema, RLS on) and keep the
   rows unowned (no `user_id`, or one literal constant). **Do not import
   `authMiddleware` / `requireUserId` in an auth-off app** — the dev user they
   return is preview-only (the deployed flag is the platform's), so deployed
@@ -163,7 +163,7 @@ missing. Postgres and Better Auth are pre-wired in `src/lib`, **opt-in per app**
   the docs rather than looping on failed installs, and prefer a pure-JS
   alternative. Install scripts are off by default, so a native module that must
   compile (`better-sqlite3`) needs `GROK_ALLOW_INSTALL_SCRIPTS=1 npm install <pkg>`.
-- **The app is deployed to Vercel**, where these fail though locally they don't:
+- **The app is deployed to Cloudflare Workers** (Nitro `cloudflare_module`), where these fail though locally they don't:
   runtime filesystem writes, server-only Node APIs at import time, dev-only deps,
   hard-coded hosts/ports/secrets (`.grok/references/deploy-target.md`).
 - **Never create a `.env` file** — the platform injects `DATABASE_URL` + auth

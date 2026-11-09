@@ -163,7 +163,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                   <span className="font-mono text-xs text-muted">
                     {asset.status} · link {Math.round(asset.link * 100)}% · bat {Math.round(asset.battery * 100)}%
                   </span>
-                  <span className="h-1 overflow-hidden rounded-md bg-line">
+                  <span className="h-1 overflow-hidden rounded-none bg-line">
                     <span
                       className="block h-full bg-fg"
                       style={{ width: `${Math.round(asset.battery * 100)}%` }}
@@ -231,7 +231,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
           ) : (
             <ul className="flex flex-col gap-3 px-4 pb-4">
               {committed.map((engagement) => (
-                <li key={engagement.id} className="rounded-md border border-line bg-surface p-3">
+                <li key={engagement.id} className="rounded-none border border-line bg-surface p-3">
                   <p className="text-sm font-medium">
                     {engagement.shooterId} closing on {engagement.trackId}
                   </p>
@@ -239,7 +239,7 @@ export function Console({ initial }: { initial: { world: World; trace: Trace } }
                 </li>
               ))}
               {pending.map((engagement) => (
-                <li key={engagement.id} className="rounded-md border border-line bg-surface p-3">
+                <li key={engagement.id} className="rounded-none border border-line bg-surface p-3">
                   <p className="text-sm font-medium">
                     {engagement.shooterId} → {engagement.trackId}
                   </p>

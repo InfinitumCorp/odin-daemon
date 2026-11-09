@@ -15,7 +15,7 @@ import { isMigrationFile } from "./scripts/migration-plan.mjs";
 /** The files `src/lib/db.ts` globs — same directory, same non-recursive scope. */
 function hasGlobbedMigrations(root: string): boolean {
   try {
-    return readdirSync(join(root, "migrations")).some(isMigrationFile);
+    return readdirSync(join(root, "supabase", "migrations")).some(isMigrationFile);
   } catch {
     return false;
   }
@@ -170,7 +170,7 @@ export default defineConfig(({ command, isPreview }) => ({
     ...(command === "build" || isPreview
       ? [
           nitro({
-            preset: "vercel",
+            preset: "cloudflare_module",
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.

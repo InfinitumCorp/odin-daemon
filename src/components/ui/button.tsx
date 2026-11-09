@@ -9,7 +9,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex min-h-10 items-center justify-center rounded-lg px-3 text-sm font-normal motion-safe:transition-colors motion-safe:duration-150 disabled:opacity-50",
+        "inline-flex min-h-10 items-center justify-center rounded-none px-3 text-sm font-normal motion-safe:transition-colors motion-safe:duration-150 disabled:opacity-50",
         tone === "accent" && "bg-fg text-on-accent hover:bg-accent",
         tone === "ink" && "bg-fg text-on-accent hover:bg-accent",
         tone === "alert" && "bg-fg text-on-accent hover:bg-accent",

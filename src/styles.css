@@ -4,7 +4,7 @@
 
 @theme {
   --color-bg: #ffffff;
-  --color-surface: #ffffff;
+  --color-surface: #f3f5f7;
   --color-line: #d6dce1;
   --color-fg: #111820;
   --color-muted: #52606b;
@@ -13,8 +13,25 @@
   --color-alert: #111820;
   --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --radius-md: 0px;
-  --radius-lg: 0px;
+  --radius-md: 10px;
+}
+
+:root {
+  color-scheme: light;
+  --ink: #111820;
+  --muted: #52606b;
+  --line: #d6dce1;
+  --accent: #2454dd;
+  --paper: #ffffff;
+  --m-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --color-bg: #ffffff;
+  --color-surface: #f3f5f7;
+  --color-line: #d6dce1;
+  --color-fg: #111820;
+  --color-muted: #52606b;
+  --color-accent: #2454dd;
+  --color-on-accent: #ffffff;
+  --color-alert: #111820;
 }
 
 @layer base {
