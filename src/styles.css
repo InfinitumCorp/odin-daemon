@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Shared Infinitum app shell (copy of infinitum-nexus packages/ui/app-shell.css), in the base layer so utilities still win. */
+@import "./app-shell.css" layer(base);
 
 @theme {
   --color-bg: #ffffff;
@@ -33,13 +35,6 @@
 }
 
 @layer base {
-  html,
-  body {
-    background: var(--paper);
-    color: var(--ink);
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 400;
-  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
