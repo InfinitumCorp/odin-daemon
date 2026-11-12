@@ -2,7 +2,7 @@
 
 Tabletop simulation of the ODIN° DAEMON airframes. Each model has its own backend. A person approves every engagement. ROE HOLD blocks resolution.
 
-CONJURE rehearses each plan against a synthetic room (partner unit, oversight, affected community, liaison). The forecast is advisory. It does not clear a shot. The procedural crowd is the bounded-confidence path from InfinitumCorp/zerkalo. No language model.
+CONJURE rehearses each plan against a synthetic room (partner unit, oversight, affected community, liaison). The forecast is advisory. It does not clear a shot. The procedural crowd is a bounded-confidence model. No language model.
 
 ```bash
 npm install

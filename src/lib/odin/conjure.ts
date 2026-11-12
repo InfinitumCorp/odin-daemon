@@ -6,8 +6,7 @@ import type { AssetClass, Forecast, World } from "./types.ts";
 /**
  * CONJURE for this tabletop.
  *
- * Procedural crowd only, from InfinitumCorp/zerkalo (`simulation._rule_decide`
- * and `network.build_graph`): bounded confidence, homophily, preferential
+ * Procedural crowd only: bounded confidence, homophily, preferential
  * attachment. The language-model personas, the analyst write-up, and the
  * "design the outcome" compare loop are not ported.
  *
