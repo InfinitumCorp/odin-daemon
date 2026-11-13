@@ -10,7 +10,7 @@ export interface ModuleNote {
 }
 
 export const PROVENANCE =
-  "Original tabletop engine for the ODIN° DAEMON series. Each airframe has its own backend. CONJURE is the procedural crowd from InfinitumCorp/zerkalo: bounded confidence and a homophilous graph, no language model, synthetic roles only. A forecast does not clear a shot. No repository from Anduril, Meta, Tesla, Apple, Palantir, SpaceX, a satellite operator, a Five Eyes agency, DJI, Microsoft, AWS, NVIDIA, Flock, or a biometrics vendor was cloned. Facial recognition is not part of this build.";
+  "Original tabletop engine for the ODIN° DAEMON series. Each airframe has its own backend. CONJURE is a procedural crowd: bounded confidence and a homophilous graph, no language model, synthetic roles only. A forecast does not clear a shot. No repository from Anduril, Meta, Tesla, Apple, Palantir, SpaceX, a satellite operator, a Five Eyes agency, DJI, Microsoft, AWS, NVIDIA, Flock, or a biometrics vendor was cloned. Facial recognition is not part of this build.";
 
 const SUITE: ModuleNote[] = [
   {
@@ -32,7 +32,7 @@ const SUITE: ModuleNote[] = [
     layer: "Decide",
     role: "Rehearse who objects before the action",
     method:
-      "Procedural path from InfinitumCorp/zerkalo. Twenty-four synthetic roles, six rounds, bounded confidence. Each airframe seeds its own plan. The report is advisory and never approves an engagement.",
+      "Procedural path. Twenty-four synthetic roles, six rounds, bounded confidence. Each airframe seeds its own plan. The report is advisory and never approves an engagement.",
   },
   {
     id: "SCALVS",
