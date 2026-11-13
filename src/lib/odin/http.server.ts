@@ -1,4 +1,13 @@
-import { asRole, asScenario, health, picture, resetExercise, stepExercise } from "./service.server.ts";
+import { currentGeoNote, peerFromRequest } from "../geo/hook.server.ts";
+import type { GeoNote } from "../geo/hook.ts";
+import {
+  asRole,
+  asScenario,
+  health,
+  picture,
+  resetExercise,
+  stepExercise,
+} from "./service.server.ts";
 import type { Command, Roe } from "./types.ts";
 
 function json(body: unknown, status = 200): Response {
@@ -11,7 +20,10 @@ function commandsOf(value: unknown): Command[] {
   for (const item of value.slice(0, 8)) {
     if (!item || typeof item !== "object") continue;
     const command = item as Command;
-    if ((command.type === "approve" || command.type === "deny") && typeof command.engagementId === "string") {
+    if (
+      (command.type === "approve" || command.type === "deny") &&
+      typeof command.engagementId === "string"
+    ) {
       out.push(command);
     } else if (command.type === "launch" && typeof command.assetId === "string") {
       out.push(command);
@@ -28,17 +40,24 @@ function commandsOf(value: unknown): Command[] {
 export async function handleDaemonRequest(request: Request, splat: string): Promise<Response> {
   const path = splat.replace(/^\/+|\/+$/g, "");
   const url = new URL(request.url);
+  let geo: GeoNote | null = null;
+  try {
+    geo = await currentGeoNote(peerFromRequest(request));
+  } catch {
+    geo = null;
+  }
+  const send = (body: object, status = 200) => json(geo ? { ...body, geo } : body, status);
   try {
     if (request.method === "GET" && (path === "health" || path === "")) {
-      return json(await health());
+      return send({ ...(await health()) });
     }
     if (request.method === "GET" && path === "picture") {
       const role = asRole(url.searchParams.get("role"));
       const exercise = asScenario(url.searchParams.get("exercise"));
       const world = await picture(exercise);
-      return json({ ok: true, role, exercise, world });
+      return send({ ok: true, role, exercise, world });
     }
-    if (request.method !== "POST") return json({ ok: false, error: "Not found." }, 404);
+    if (request.method !== "POST") return send({ ok: false, error: "Not found." }, 404);
     const body = (await request.json().catch(() => ({}))) as {
       role?: unknown;
       exercise?: unknown;
@@ -52,18 +71,18 @@ export async function handleDaemonRequest(request: Request, splat: string): Prom
       const exercise = asScenario(body.exercise);
       const steps = Number.isFinite(body.steps) ? Math.floor(body.steps as number) : 1;
       const world = await stepExercise(exercise, role, steps, commandsOf(body.commands));
-      return json({ ok: true, role, exercise, world });
+      return send({ ok: true, role, exercise, world });
     }
     if (path === "reset") {
       const scenario = asScenario(body.scenario ?? body.exercise);
       const seed = Number.isFinite(body.seed) ? Math.floor(body.seed as number) : 1107;
       const world = await resetExercise(scenario, seed, role);
-      return json({ ok: true, role, exercise: scenario, world });
+      return send({ ok: true, role, exercise: scenario, world });
     }
-    return json({ ok: false, error: "Not found." }, 404);
+    return send({ ok: false, error: "Not found." }, 404);
   } catch (error) {
     const message = error instanceof Error ? error.message : "The exercise backend failed.";
     const status = message.startsWith("Commander clearance") ? 403 : 500;
-    return json({ ok: false, error: message }, status);
+    return send({ ok: false, error: message }, status);
   }
 }

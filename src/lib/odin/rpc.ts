@@ -39,9 +39,15 @@ export const bootstrapSim = createServerFn({ method: "POST" })
       data.role === "commander" && data.seed !== 1107
         ? await resetExercise(data.scenario, data.seed, data.role)
         : await picture(data.scenario);
+    const { withGeoTrace } = await import("../geo/hook.server.ts");
     return {
       world,
-      trace: { fn: "odin.picture", ms: performance.now() - started, bytesIn: 0, bytesOut: JSON.stringify(world).length },
+      trace: await withGeoTrace({
+        fn: "odin.picture",
+        ms: performance.now() - started,
+        bytesIn: 0,
+        bytesOut: JSON.stringify(world).length,
+      }),
     };
   });
 
@@ -56,9 +62,15 @@ export const resetSim = createServerFn({ method: "POST" })
     const started = performance.now();
     const { resetExercise } = await import("./service.server.ts");
     const world = await resetExercise(data.scenario, data.seed, data.role);
+    const { withGeoTrace } = await import("../geo/hook.server.ts");
     return {
       world,
-      trace: { fn: "odin.reset", ms: performance.now() - started, bytesIn: 0, bytesOut: JSON.stringify(world).length },
+      trace: await withGeoTrace({
+        fn: "odin.reset",
+        ms: performance.now() - started,
+        bytesIn: 0,
+        bytesOut: JSON.stringify(world).length,
+      }),
     };
   });
 
@@ -73,13 +85,14 @@ export const stepSim = createServerFn({ method: "POST" })
     const started = performance.now();
     const { stepExercise } = await import("./service.server.ts");
     const world = await stepExercise(data.exercise, data.role, data.steps, data.commands);
+    const { withGeoTrace } = await import("../geo/hook.server.ts");
     return {
       world,
-      trace: {
+      trace: await withGeoTrace({
         fn: "odin.step",
         ms: performance.now() - started,
         bytesIn: JSON.stringify(data.commands).length,
         bytesOut: JSON.stringify(world).length,
-      },
+      }),
     };
   });

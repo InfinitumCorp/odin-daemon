@@ -11,15 +11,14 @@ npm run dev
 
 The server owns the picture. The client sends a role and commands, never a world.
 
-| Method | Path | |
-|---|---|---|
-| GET | `/api/odin/health` | |
-| GET | `/api/odin/picture?exercise=hearth&role=observer` | |
-| POST | `/api/odin/step` | `{ exercise, role, steps, commands }` |
-| POST | `/api/odin/reset` | `{ scenario, seed, role }` commander only |
+| Method | Path                                              |                                           |
+| ------ | ------------------------------------------------- | ----------------------------------------- |
+| GET    | `/api/odin/health`                                |                                           |
+| GET    | `/api/odin/picture?exercise=hearth&role=observer` |                                           |
+| POST   | `/api/odin/step`                                  | `{ exercise, role, steps, commands }`     |
+| POST   | `/api/odin/reset`                                 | `{ scenario, seed, role }` commander only |
 
 Observer and analyst can watch the clock. Approve, deny, ROE, launch, and adopt require commander.
-
 
 ## Hosting: Cloudflare Workers
 
@@ -44,8 +43,24 @@ Data lives in the shared **Infinitum Corp** Supabase project (ref `ivqiskeziohbb
 
 Set these with `npx wrangler secret put <NAME>` (or in the Cloudflare dashboard). Never commit them.
 
-| Name | Required | What it is |
-|---|---|---|
-| `DATABASE_URL` | for persistence | Supabase Postgres connection string through the **transaction pooler** (port 6543) for the Infinitum Corp project. Secret. Without it, the exercise picture is kept in memory per Worker isolate. |
-| `GROK_PROJECT_ID`, `GROK_GATE_ORIGIN` | no | Grok App Builder gate. Leave unset outside Grok-hosted deploys. |
-| `VITE_AUTH_ENABLED`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | only if sign-in is turned on | Better Auth. Off by default. |
+| Name                                                         | Required                     | What it is                                                                                                                                                                                        |
+| ------------------------------------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                               | for persistence              | Supabase Postgres connection string through the **transaction pooler** (port 6543) for the Infinitum Corp project. Secret. Without it, the exercise picture is kept in memory per Worker isolate. |
+| `GROK_PROJECT_ID`, `GROK_GATE_ORIGIN`                        | no                           | Grok App Builder gate. Leave unset outside Grok-hosted deploys.                                                                                                                                   |
+| `VITE_AUTH_ENABLED`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | only if sign-in is turned on | Better Auth. Off by default.                                                                                                                                                                      |
+| `INFINITUM_GEO_ENABLED`                                      | no                           | Geo routing. Unset follows the saved toggle, which defaults to off. `1`, `true`, `on`, or `yes` forces it on. Any other value forces it off.                                                      |
+| `INFINITUM_GEO_DIR`                                          | no                           | Where `geoip.dat`, `geosite.dat`, and `settings.json` live. Defaults to `data/geo/`.                                                                                                              |
+
+## Geo datasets
+
+Country and site lists are optional. While geo routing is off, the exercise picture and the API bodies stay as they are.
+
+The lists are the v2fly releases pinned in `geo/geo-dat.lock.json`. The binaries are downloaded, checksum-checked, and gitignored.
+
+```bash
+npm run geo:fetch
+npm run geo:routing -- --geo-routing=on
+npm run geo:routing -- --geo-routing=off
+```
+
+The console header has the same toggle. Attribution is in `THIRD_PARTY_NOTICES.md`.
